@@ -5,6 +5,17 @@ export const useYouTubeService = () => {
     const match = url.match(regExp);
     return (match && match[7].length === 11) ? match[7] : null;
   };
+  
+  // Function to clean up song titles for better lyrics search
+  const cleanSongTitle = (title) => {
+    return title
+      .replace(/\(.*?\)/g, '') // Remove parentheses content
+      .replace(/\[.*?\]/g, '') // Remove brackets content
+      .replace(/official|video|music|lyric|lyrics|hd|4k|mv|clip/gi, '') // Remove common words
+      .replace(/ft\.|feat\.|featuring/gi, '') // Remove featuring
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim();
+  };
 
   // Function to extract song title and artist from YouTube
   const getSongInfo = async (videoId) => {
@@ -17,9 +28,22 @@ export const useYouTubeService = () => {
       }
       
       const data = await response.json();
+      
+      // Clean up the title and artist for better lyrics search
+      let cleanTitle = data.title;
+      let cleanArtist = data.artist;
+      
+      if (cleanTitle) {
+        cleanTitle = cleanSongTitle(cleanTitle);
+      }
+      if (cleanArtist) {
+        cleanArtist = cleanSongTitle(cleanArtist);
+      }
+      
       return {
-        title: data.title,
-        artist: data.artist,
+        title: cleanTitle || data.title, // Fallback to original if cleaning resulted in empty
+        artist: cleanArtist || data.artist,
+        originalTitle: data.title,
         thumbnailUrl: data.thumbnailUrl
       };
     } catch (err) {
