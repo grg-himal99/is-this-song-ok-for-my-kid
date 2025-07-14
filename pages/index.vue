@@ -175,6 +175,12 @@
               <pre class="lyrics-text">{{ result.lyrics }}</pre>
             </div>
           </div>
+          
+          <!-- Video Player for Safe Content -->
+          <VideoPlayer 
+            v-if="!result.is18Plus" 
+            :video-id="extractVideoId(inputUrl)" 
+          />
         </div>
         
         <!-- No Lyrics Found -->
@@ -192,6 +198,7 @@
 import { ref } from 'vue';
 import { useYouTubeService } from '~/composables/useYouTubeService';
 import { useLyricsAnalyzer } from '~/composables/useLyricsAnalyzer';
+import VideoPlayer from '~/components/VideoPlayer.vue';
 
 const inputUrl = ref('');
 const isLoading = ref(false);
