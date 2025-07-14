@@ -1,26 +1,45 @@
+/**
+ * Composable for YouTube and lyrics service functions
+ * Handles YouTube URL parsing, video info extraction, and lyrics fetching
+ */
 export const useYouTubeService = () => {
-  // Function to extract video ID from YouTube URL
+  /**
+   * Extract video ID from YouTube URL
+   * Supports various YouTube URL formats (youtube.com, youtu.be, etc.)
+   * @param {string} url - YouTube video URL
+   * @returns {string|null} - 11-character video ID or null if invalid
+   */
   const extractVideoId = (url) => {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[7].length === 11) ? match[7] : null;
   };
   
-  // Function to clean up song titles for better lyrics search
+  /**
+   * Clean up song titles by removing common video-related words and formatting
+   * Improves lyrics search accuracy by removing noise from video titles
+   * @param {string} title - Original song title
+   * @returns {string} - Cleaned title
+   */
   const cleanSongTitle = (title) => {
     return title
-      .replace(/\(.*?\)/g, '') // Remove parentheses content
-      .replace(/\[.*?\]/g, '') // Remove brackets content
-      .replace(/official|video|music|lyric|lyrics|hd|4k|mv|clip/gi, '') // Remove common words
-      .replace(/ft\.|feat\.|featuring/gi, '') // Remove featuring
+      .replace(/\(.*?\)/g, '') // Remove content in parentheses (Official Video, etc.)
+      .replace(/\[.*?\]/g, '') // Remove content in square brackets
+      .replace(/official|video|music|lyric|lyrics|hd|4k|mv|clip/gi, '') // Remove common video keywords
+      .replace(/ft\.|feat\.|featuring/gi, '') // Remove featuring indicators
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .trim();
+      .trim(); // Remove leading/trailing whitespace
   };
 
-  // Function to extract song title and artist from YouTube
+  /**
+   * Extract song information from YouTube video
+   * Calls server API to get video metadata and cleans up title/artist
+   * @param {string} videoId - YouTube video ID
+   * @returns {Object} - Song info object with title, artist, thumbnail
+   */
   const getSongInfo = async (videoId) => {
     try {
-      // Using our server API endpoint
+      // Call our server API endpoint to get YouTube video info
       const response = await fetch(`/api/youtube-info?videoId=${videoId}`);
       
       if (!response.ok) {
@@ -29,7 +48,7 @@ export const useYouTubeService = () => {
       
       const data = await response.json();
       
-      // Clean up the title and artist for better lyrics search
+      // Clean up the title and artist for better lyrics search accuracy
       let cleanTitle = data.title;
       let cleanArtist = data.artist;
       
@@ -41,14 +60,14 @@ export const useYouTubeService = () => {
       }
       
       return {
-        title: cleanTitle || data.title, // Fallback to original if cleaning resulted in empty
-        artist: cleanArtist || data.artist,
-        originalTitle: data.title,
-        thumbnailUrl: data.thumbnailUrl
+        title: cleanTitle || data.title, // Use cleaned title, fallback to original
+        artist: cleanArtist || data.artist, // Use cleaned artist, fallback to original
+        originalTitle: data.title, // Keep original title for reference
+        thumbnailUrl: data.thumbnailUrl // Video thumbnail image
       };
     } catch (err) {
       console.error('Error fetching YouTube info:', err);
-      // Fallback to just using the video ID
+      // Fallback response when API call fails
       return {
         title: `YouTube Video (${videoId})`,
         artist: null
@@ -56,28 +75,37 @@ export const useYouTubeService = () => {
     }
   };
 
-  // Function to search for lyrics using our API
+  /**
+   * Fetch song lyrics using artist and title
+   * Calls server API which then queries external lyrics service
+   * @param {string} songTitle - Song title
+   * @param {string} artist - Artist name
+   * @returns {string|null} - Lyrics text or null if not found
+   */
   const getLyrics = async (songTitle, artist) => {
     try {
+      // Both artist and title are required for lyrics search
       if (!artist) {
-        return null; // We need both title and artist for our API
+        return null;
       }
       
-      // Using our server API endpoint
+      // Call our server API endpoint with URL-encoded parameters
       const response = await fetch(`/api/lyrics?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(songTitle)}`);
       
+      // Return null if request failed (lyrics not found)
       if (!response.ok) {
         return null;
       }
       
       const data = await response.json();
-      return data.lyrics;
+      return data.lyrics; // Return the lyrics text
     } catch (err) {
       console.error('Error fetching lyrics:', err);
-      return null;
+      return null; // Return null on any error
     }
   };
 
+  // Return all service functions
   return {
     extractVideoId,
     getSongInfo,

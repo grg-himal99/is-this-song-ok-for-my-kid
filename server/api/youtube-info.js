@@ -23,14 +23,30 @@ export default defineEventHandler(async (event) => {
     // Extract title and try to parse artist
     const title = data.title;
     
-    // Try to extract artist from title (common format: "Artist - Song Title")
+    // Try to extract artist from title (multiple formats)
     let artist = null;
+    let cleanTitle = title;
+    
     if (title.includes(' - ')) {
+      // Format: "Artist - Song Title"
       artist = title.split(' - ')[0].trim();
+      cleanTitle = title.split(' - ')[1]?.trim() || title;
+    } else if (title.includes(' – ')) {
+      // Format: "Artist – Song Title" (em dash)
+      artist = title.split(' – ')[0].trim();
+      cleanTitle = title.split(' – ')[1]?.trim() || title;
+    } else if (title.includes(' by ')) {
+      // Format: "Song Title by Artist"
+      const parts = title.split(' by ');
+      if (parts.length === 2) {
+        cleanTitle = parts[0].trim();
+        artist = parts[1].trim();
+      }
     }
     
-    // Clean up the title if we found an artist
-    const cleanTitle = artist ? title.split(' - ')[1]?.trim() || title : title;
+    // Remove common suffixes from title
+    cleanTitle = cleanTitle.replace(/\s*\((Official|Music|Lyric)\s*(Video|Audio|MV)?.*\)$/i, '').trim();
+    cleanTitle = cleanTitle.replace(/\s*\[(Official|Music|Lyric)\s*(Video|Audio|MV)?.*\]$/i, '').trim();
     
     return {
       title: cleanTitle,
